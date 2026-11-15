@@ -136,6 +136,15 @@ Web版には日本語表示に必要なフォント、WebGL用シェーダー、
 同梱します。絵文字、アイコン、MIDI音源などを使う機能を追加する場合は、
 `functional_test/CMakeLists.txt` のリソース一覧も更新してください。
 
+GitHub Pages 用の `docs/` を更新するには、Web版をビルドした後に次を実行します。
+
+```bash
+cmake -E copy_directory build/web-build/web docs
+```
+
+`docs/` の変更をコミットし、GitHub Pages の公開元に設定したブランチへ反映します。
+`docs/.nojekyll` はそのまま残してください。
+
 ## src に部品を追加する
 
 実行しない関数やクラスは `src/` に追加します。例えば `src/hello.cpp` と
