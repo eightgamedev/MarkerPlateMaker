@@ -1,3 +1,5 @@
 include(${CMAKE_SOURCE_DIR}/cmake/add_gtest_executable.cmake)
 
 add_gtest_executable(hello_UnitTest)
+add_gtest_executable(marker_plate_UnitTest)
+add_gtest_executable(numeric_input_UnitTest)

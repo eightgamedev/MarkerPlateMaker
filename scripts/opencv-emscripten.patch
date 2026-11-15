@@ -1,0 +1,13 @@
+diff --git a/cmake/OpenCVCompilerOptions.cmake b/cmake/OpenCVCompilerOptions.cmake
+index 9b2265b..52bf634 100644
+--- a/cmake/OpenCVCompilerOptions.cmake
++++ b/cmake/OpenCVCompilerOptions.cmake
+@@ -165,7 +165,7 @@ if(CV_GCC OR CV_CLANG)
+   endif()
+ 
+   # We need pthread's
+-  if(UNIX AND NOT ANDROID AND NOT (APPLE AND CV_CLANG)) # TODO
++  if(UNIX AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT (APPLE AND CV_CLANG)) # TODO
+     add_extra_compiler_option(-pthread)
+   endif()
+ 
