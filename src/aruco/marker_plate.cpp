@@ -139,7 +139,8 @@ std::string modelXml(const markerplate::Parameters& parameters) {
     const auto blackCells = markerplate::blackCellsForId(parameters.dictionary, parameters.id);
     const int markerGridSize = (info.payloadSize + 2);
     const double module = parameters.markerSizeMm / markerGridSize;
-    const double boardSize = markerplate::plateSizeForMarkerSize(parameters.dictionary, parameters.markerSizeMm);
+    const double boardSize = markerplate::plateSizeForMarkerSize(
+            parameters.dictionary, parameters.markerSizeMm, parameters.additionalMarginMm);
     Mesh base;
     Mesh blackCell;
     addBox(base, 0.0, 0.0, boardSize, boardSize, 0.0, parameters.baseThicknessMm);
@@ -159,8 +160,8 @@ std::string modelXml(const markerplate::Parameters& parameters) {
                 isBlack = (blackCells[bitIndex] != 0);
             }
             if (isBlack) {
-                const double x = module * (column + 1);
-                const double y = module * (markerGridSize - row);
+                const double x = parameters.additionalMarginMm + module * (column + 1);
+                const double y = parameters.additionalMarginMm + module * (markerGridSize - row);
                 components << "<component objectid=\"3\" transform=\"1 0 0 0 1 0 0 0 1 " << x << " " << y << " "
                            << parameters.baseThicknessMm << "\"/>";
             }
@@ -285,20 +286,24 @@ void validate(const markerplate::Parameters& parameters) {
         parameters.reliefHeightMm > 10.0) {
         throw std::invalid_argument("Relief height must be greater than 0 and at most 10 mm.");
     }
+    if (!std::isfinite(parameters.additionalMarginMm) || parameters.additionalMarginMm < 0.0 ||
+        parameters.additionalMarginMm > 1000.0) {
+        throw std::invalid_argument("Additional margin must be between 0 and 1000 mm per side.");
+    }
 }
 }  // namespace
 
 namespace markerplate {
 std::span<const DictionaryInfo> supportedDictionaries() noexcept { return DictionaryList; }
 
-double markerSizeForPlateSize(DictionaryType type, double plateSizeMm) {
+double markerSizeForPlateSize(DictionaryType type, double plateSizeMm, double additionalMarginMm) {
     const auto& info = dictionaryInfo(type);
-    return plateSizeMm * (info.payloadSize + 2.0) / (info.payloadSize + 4.0);
+    return (plateSizeMm - 2.0 * additionalMarginMm) * (info.payloadSize + 2.0) / (info.payloadSize + 4.0);
 }
 
-double plateSizeForMarkerSize(DictionaryType type, double markerSizeMm) {
+double plateSizeForMarkerSize(DictionaryType type, double markerSizeMm, double additionalMarginMm) {
     const auto& info = dictionaryInfo(type);
-    return markerSizeMm * (info.payloadSize + 4.0) / (info.payloadSize + 2.0);
+    return markerSizeMm * (info.payloadSize + 4.0) / (info.payloadSize + 2.0) + 2.0 * additionalMarginMm;
 }
 
 std::vector<std::uint8_t> blackCellsForId(DictionaryType type, int id) {

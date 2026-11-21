@@ -58,7 +58,9 @@ IDは半角数字のみ、寸法と厚さは半角数字とドットのみを入
 （プレート全体の幅）から選択できます。基準を切り替えても入力値は変わらず、
 選択した基準の幅として扱います。外側に1セル分の白い余白を付けるため、
 両者の比率は辞書のビットサイズに応じて変わり、例えば4x4辞書ならプレート幅は
-マーカー幅の4/3です。プレビュー下の両矢印に両方の寸法を表示します。
+マーカー幅の4/3です。「各辺の追加余白 (mm)」で、この1セル分の余白の外側に
+追加する幅を指定できます（初期値は0 mm）。指定した追加余白はプレート全体の幅にも反映されます。
+プレビュー下の両矢印にマーカー幅とプレート幅を表示します。
 
 出力される3MFには白い土台と黒い模様が別の色として格納されます。スライサーで
 2色のフィラメントを割り当てて印刷してください。複数色の割り当てはスライサー側の
@@ -78,7 +80,14 @@ Web版はブラウザー内で3MFを生成し、ダウンロードします。Li
 変更されません。[Siv3D for Web の手順](https://siv3d.kamenokosoft.com/docs/ja/download/web-vscode-unix/)
 にあるテンプレート（同梱SDKはv0.6.6）と Emscripten 3.1.20 を使用します。
 テンプレート付属のライブラリの未解決シンボルを避けるため、同じバージョンの
-FreeType と OpenCV を WebAssembly 用に再ビルドします。次の例では Python を uv で用意します。
+FreeType と OpenCV を WebAssembly 用にビルドします。以下では初回の環境構築と、ソース変更後の
+通常の再ビルドを分けて説明します。
+
+### 初回のみ: ビルド環境の構築
+
+Emscripten、OpenSiv3D Webテンプレート、FreeType、OpenCVを取得し、WebAssembly用ライブラリと
+CMakeのビルド設定を作成します。依存ライブラリの再構築やCMake設定の変更がない限り、
+2回目以降にこの手順を繰り返す必要はありません。次の例ではPythonをuvで用意します。
 
 ```bash
 git submodule update --init --recursive
@@ -115,19 +124,41 @@ emcmake cmake -S . -B build/web-build -DCMAKE_BUILD_TYPE=Release \
     -DSIV3D_WEB_TEMPLATE="$PWD/build/web-tools/template" \
     -DSIV3D_WEB_FREETYPE_BUILD="$PWD/build/web-tools/freetype-build" \
     -DSIV3D_WEB_OPENCV_BUILD="$PWD/build/web-tools/opencv-build"
+```
+
+### ソース変更後: Webアプリをビルド
+
+新しいターミナルを開いたときは、まずEmscripten環境を有効にしてからアプリをビルドします。
+初回セットアップと同じターミナルを使い続けている場合、環境の有効化は不要です。
+
+```bash
+source build/web-tools/emsdk/emsdk_env.sh
 cmake --build build/web-build --target siv3d_app -j4
 ```
 
-`build/web-build/web/` のファイル一式を静的ホスティングに配置します。
-ローカルで試す場合も `file://` ではなく HTTP を使用します。
+ビルド結果は `build/web-build/web/` に生成されます。ローカルで試す場合は、
+`file://` ではなくHTTPサーバーを起動します。
 
 ```bash
 build/web-tools/python/bin/python -m http.server 8000 --directory build/web-build/web
 ```
 
-ブラウザーで `http://localhost:8000/` を開きます。3MFの保存先はブラウザーの
-ダウンロード設定に従います。Web用辞書表は Linux 版から生成したもので、
-全IDを比較する単体テストがあります。再生成する場合は OpenCV 4.x を使用して
+ブラウザーで `http://localhost:8000/` を開きます。サーバーは別のターミナルで起動してください。
+3MFの保存先はブラウザーのダウンロード設定に従います。
+
+### GitHub Pagesへの公開
+
+Web版をビルドした後、公開用の `docs/` を更新します。このコピーはローカルで試すだけなら不要です。
+
+```bash
+cmake -E copy_directory build/web-build/web docs
+```
+
+`docs/` の変更をコミットし、GitHub Pagesの公開元に設定したブランチへ反映します。
+`docs/.nojekyll` はそのまま残してください。
+
+Web用辞書表はLinux版から生成したもので、全IDを比較する単体テストがあります。
+再生成する場合はOpenCV 4.xを使用して
 `scripts/generate_web_dictionaries.cpp` と `src/aruco/marker_plate.cpp` を
 ネイティブでコンパイルし、その出力を `src/aruco/web_dictionary_codes.inc` に保存します。
 配布時は出力先の `licenses/` も一緒に配置してください。
@@ -135,15 +166,6 @@ Web版には FreeType Project のコードが含まれます。
 Web版には日本語表示に必要なフォント、WebGL用シェーダー、描画用テクスチャだけを
 同梱します。絵文字、アイコン、MIDI音源などを使う機能を追加する場合は、
 `functional_test/CMakeLists.txt` のリソース一覧も更新してください。
-
-GitHub Pages 用の `docs/` を更新するには、Web版をビルドした後に次を実行します。
-
-```bash
-cmake -E copy_directory build/web-build/web docs
-```
-
-`docs/` の変更をコミットし、GitHub Pages の公開元に設定したブランチへ反映します。
-`docs/.nojekyll` はそのまま残してください。
 
 ## src に部品を追加する
 

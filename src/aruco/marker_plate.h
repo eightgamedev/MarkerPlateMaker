@@ -37,11 +37,14 @@ namespace markerplate
         double baseThicknessMm = 2.0;
         double reliefHeightMm = 0.4;
         DictionaryType dictionary = DictionaryType::Aruco4x4_1000;
+        double additionalMarginMm = 0.0;
     };
 
     [[nodiscard]] std::span<const DictionaryInfo> supportedDictionaries() noexcept;
-    [[nodiscard]] double markerSizeForPlateSize(DictionaryType dictionary, double plateSizeMm);
-    [[nodiscard]] double plateSizeForMarkerSize(DictionaryType dictionary, double markerSizeMm);
+    [[nodiscard]] double markerSizeForPlateSize(
+            DictionaryType dictionary, double plateSizeMm, double additionalMarginMm = 0.0);
+    [[nodiscard]] double plateSizeForMarkerSize(
+            DictionaryType dictionary, double markerSizeMm, double additionalMarginMm = 0.0);
     [[nodiscard]] std::vector<std::uint8_t> blackCellsForId(DictionaryType dictionary, int id);
     [[nodiscard]] std::vector<std::uint8_t> make3mf(const Parameters& parameters);
     void save3mf(const std::filesystem::path& path, const Parameters& parameters);
