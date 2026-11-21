@@ -92,6 +92,23 @@ TEST(MarkerPlateTest, SizesPlateIncludingMarginForDifferentDictionaries)
         0, markerplate::markerSizeForPlateSize(dictionary, 7.9), 2.0, 0.4, dictionary }), std::invalid_argument);
 }
 
+TEST(MarkerPlateTest, AddsExtraMarginToEverySideAndConvertsPlateSizeBackToMarkerSize)
+{
+    const auto dictionary = markerplate::DictionaryType::Aruco4x4_1000;
+    constexpr double markerSize = 50.0;
+    constexpr double additionalMargin = 2.0;
+    const double expectedPlateSize = markerSize * 8.0 / 6.0 + additionalMargin * 2.0;
+
+    EXPECT_NEAR(
+        markerplate::plateSizeForMarkerSize(dictionary, markerSize, additionalMargin), expectedPlateSize, 1e-10);
+    EXPECT_NEAR(
+        markerplate::markerSizeForPlateSize(dictionary, expectedPlateSize, additionalMargin), markerSize, 1e-10);
+
+    const auto bytes = markerplate::make3mf({ 0, markerSize, 2.0, 0.4, dictionary, additionalMargin });
+    const std::string package(bytes.begin(), bytes.end());
+    EXPECT_NE(package.find("<vertex x=\"70.6666667\""), std::string::npos);
+}
+
 TEST(MarkerPlateTest, SupportsEveryListedDictionary)
 {
     for (const auto& dictionary : markerplate::supportedDictionaries())
@@ -150,4 +167,6 @@ TEST(MarkerPlateTest, RejectsInvalidDimensions)
     EXPECT_THROW(markerplate::make3mf({ 0, 5.0, 2.0, 0.4 }), std::invalid_argument);
     EXPECT_THROW(markerplate::make3mf({ 0, 50.0, 0.0, 0.4 }), std::invalid_argument);
     EXPECT_THROW(markerplate::make3mf({ 0, 50.0, 2.0, 0.0 }), std::invalid_argument);
+    EXPECT_THROW(markerplate::make3mf({ 0, 50.0, 2.0, 0.4, markerplate::DictionaryType::Aruco4x4_1000, -1.0 }),
+                 std::invalid_argument);
 }
