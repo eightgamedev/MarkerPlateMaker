@@ -6,6 +6,9 @@
 #include <array>
 #include <exception>
 #include <filesystem>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -28,6 +31,36 @@ EM_JS(int, download3mf, (const std::uint8_t* data, std::size_t size, const char*
     }
 });
 #endif
+
+std::string defaultFileName(const markerplate::DictionaryInfo& dictionary, int id, double markerSizeMm) {
+    std::string dictionaryName;
+    for (const unsigned char character : dictionary.name) {
+        const bool isAsciiAlphanumeric =
+                (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') ||
+                (character >= '0' && character <= '9');
+        if (isAsciiAlphanumeric) {
+            dictionaryName.push_back(static_cast<char>(character));
+        } else if (!dictionaryName.empty() && dictionaryName.back() != '_') {
+            dictionaryName.push_back('_');
+        }
+    }
+    while (!dictionaryName.empty() && dictionaryName.back() == '_') {
+        dictionaryName.pop_back();
+    }
+
+    std::ostringstream size;
+    size.imbue(std::locale::classic());
+    size << std::fixed << std::setprecision(2) << markerSizeMm;
+    std::string sizeText = size.str();
+    while (!sizeText.empty() && sizeText.back() == '0') {
+        sizeText.pop_back();
+    }
+    if (!sizeText.empty() && sizeText.back() == '.') {
+        sizeText.pop_back();
+    }
+
+    return dictionaryName + "_id" + std::to_string(id) + "_" + sizeText + "mm.3mf";
+}
 
 void Main() {
     Window::SetTitle(U"MarkerPlateMaker");
@@ -161,7 +194,7 @@ void Main() {
                         *parsedId, markerSize, *parsedBase, *parsedRelief, dictionary.type};
 #ifdef __EMSCRIPTEN__
                 const auto bytes = markerplate::make3mf(parameters);
-                const auto filename = "aruco_" + std::to_string(*parsedId) + ".3mf";
+                const auto filename = defaultFileName(dictionary, *parsedId, markerSize);
                 if (!download3mf(bytes.data(), bytes.size(), filename.c_str())) {
                     status = U"3MFのダウンロードを開始できませんでした。";
                     statusIsError = true;
@@ -173,8 +206,8 @@ void Main() {
                 const auto outputPath = Dialog::SaveFile(
                         {FileFilter{U"3D Manufacturing Format", {U"3mf"}}},
                         U"",
-                        U"ArUcoマーカーを3MFで保存",
-                        U"aruco_" + Format(*parsedId) + U".3mf");
+                        U"マーカーを3MFで保存",
+                        Unicode::Widen(defaultFileName(dictionary, *parsedId, markerSize)));
                 if (outputPath) {
                     auto filePath = std::filesystem::path{Unicode::ToUTF8(*outputPath)};
                     filePath.replace_extension(".3mf");
